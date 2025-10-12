@@ -1,4 +1,6 @@
-
+# All CLIP is trying to do is map a text input and an image into the same latent space so that they are related. 
+# So we are giving it some imaages and descriptons of images. If trained well, it should be able to take in an iamge
+# and output a description of that image.  
 import json
 
 import torch
@@ -37,6 +39,7 @@ text = []
 training_file = r"C:\Users\akani\Downloads\Training"
 
 not_found = 0
+# loading up the image names and their descriptions
 for i in range(1, ws.max_row + 1): 
     path = str(ws.cell(i, 1).value)
     img_name = path.split("/")[-1]
@@ -61,7 +64,8 @@ optimizer = torch.optim.Adam(model.parameters(), lr=5e-5,betas=(0.9,0.98),eps=1e
 loss_img = nn.CrossEntropyLoss()
 loss_txt = nn.CrossEntropyLoss()
 
-dataset = image_title_dataset(imgs, text, preprocess)
+dataset = image_title_dataset(imgs, text, preprocess) # Here we create an object that will take care of loading an image
+# the obejct is mainly so we can pass something into the DataLoader class
 train_dataloader = DataLoader(dataset, batch_size=20, shuffle=True) # try reducing batch size if you run out of memory
 
 num_epochs = 200

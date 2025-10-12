@@ -1,4 +1,5 @@
-
+# I took 20 of my annotations and seperated them in a differente excel file
+# These will serve has the testing set for the model
 import json
 
 import torch
@@ -26,6 +27,7 @@ xl_file = r"testCLIP.xlsx"
 wb = openpyxl.load_workbook(xl_file)
 ws = wb.active    
 
+# gathering entries from xl file
 for i in range(1, ws.max_row + 1): 
     path = str(ws.cell(i, 1).value)
     img_name = path.split("/")[-1]
@@ -34,8 +36,9 @@ for i in range(1, ws.max_row + 1):
         imgs.append(new_path + "/" + img_name)
         classes.append(value.lower())
 
+# some garbage prompts to add
 classes.append("Dr.Limestone cracked their back on the brick wall")
-classes.append("Stepped into the crack under the balcony")# some garbage prompts
+classes.append("Stepped into the crack under the balcony")
 for i in range(len(imgs)):
     # preprcess featrures so they are in the same format as CLIP training
     img = Image.open(imgs[i])
@@ -46,11 +49,11 @@ for i in range(len(imgs)):
     with torch.no_grad():
         image_features = model.encode_image(image_input)
         text_features = model.encode_text(text_inputs)
-
-    # Pick the top 5 most similar labels for the image
+    # normalize features
     image_features /= image_features.norm(dim=-1, keepdim=True)
     text_features /= text_features.norm(dim=-1, keepdim=True)
-    similarity = (100.0 * image_features @ text_features.T).softmax(dim=-1)
+    similarity = (100.0 * image_features @ text_features.T).softmax(dim=-1) # calculate similarity
+    # Pick the top k most similar labels for the image
     values, indices = similarity[0].topk(len(classes))
 
     # Print the result
