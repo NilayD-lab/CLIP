@@ -1,3 +1,4 @@
+
 import json
 
 import torch
@@ -17,15 +18,13 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 model, preprocess = clip.load("ViT-B/32", device=device)
 
 
-# print(model)
 def convert_models_to_fp32(model):
     for p in model.parameters():
         p.data = p.data.float()
         p.grad.data = p.grad.data.float()
 
-xl_file = r"C:\Users\akani\Downloads\Nilay (1).xlsx"
+xl_file = r"Training.xlsx"
 wb = openpyxl.load_workbook(xl_file)
-# ws = wb.active
 
 sheets = wb.sheetnames
 ws = wb[sheets[0]]
@@ -35,37 +34,36 @@ ws = wb[sheets[0]]
 # gathering entries from xl file
 imgs = []
 text = []
-new_path = r"C:\Users\akani\Downloads\Nilay\final"
+training_file = r"C:\Users\akani\Downloads\Training"
 
 not_found = 0
 for i in range(1, ws.max_row + 1): 
     path = str(ws.cell(i, 1).value)
     img_name = path.split("/")[-1]
     value = str(ws.cell(i, 2).value)
-    if (os.path.exists(new_path + "/" + img_name)):
-        imgs.append(new_path + "/" + img_name)
+    if (os.path.exists(training_file + "/" + img_name)):
+        imgs.append(training_file + "/" + img_name)
         text.append(value)
-        extra_descriptions = combine_descriptions(ws, i)
+        extra_descriptions = combine_descriptions(ws, i) # here is where im combing the extra descriptions i annotated. Removing may lead to better
+        # results but that is still shaky
         if (extra_descriptions is not None):
             text.append(extra_descriptions)
-            imgs.append(new_path + "/" + img_name)
+            imgs.append(training_file + "/" + img_name)
             # print(extra_descriptions)
-    else:
-        # print(f"image not found: {new_path + '/' + img_name}")
-        not_found += 1
+        
 print(f"amount of images: {len(imgs)}")
 print(f"amount of images: {len(text)}")
 print(f"not found: {not_found}")
 print(text[:5])
 
-
-
+exit(1)
 optimizer = torch.optim.Adam(model.parameters(), lr=5e-5,betas=(0.9,0.98),eps=1e-6,weight_decay=0.2)
 loss_img = nn.CrossEntropyLoss()
 loss_txt = nn.CrossEntropyLoss()
 
 dataset = image_title_dataset(imgs, text, preprocess)
-train_dataloader = DataLoader(dataset, batch_size=20, shuffle=True)
+train_dataloader = DataLoader(dataset, batch_size=20, shuffle=True) # try reducing batch size if you run out of memory
+
 num_epochs = 200
 for epoch in range(num_epochs):
     pbar = tqdm.tqdm(train_dataloader, total=len(train_dataloader))

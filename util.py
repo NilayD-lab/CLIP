@@ -1,3 +1,6 @@
+# this function combines the various description components into a single descriptive statement
+# this tries to create a natural sentence which CLIP was trained on
+
 def combine_descriptions(ws, row):
     descriptions = {
         "comp_type": "",
