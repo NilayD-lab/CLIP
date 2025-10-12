@@ -43,9 +43,9 @@ for i in range(len(imgs)):
     # preprcess featrures so they are in the same format as CLIP training
     img = Image.open(imgs[i])
     image_input = preprocess(img).unsqueeze(0).to(device)
-    text_inputs = torch.cat([clip.tokenize(f"a photo of {c}") for c in classes]).to(device)
+    text_inputs = torch.cat([clip.tokenize(c) for c in classes]).to(device) # create the prompts to test
 
-    # encode those features
+    # encode those features by passsing through the model
     with torch.no_grad():
         image_features = model.encode_image(image_input)
         text_features = model.encode_text(text_inputs)

@@ -1,6 +1,7 @@
 # All CLIP is trying to do is map a text input and an image into the same latent space so that they are related. 
-# So we are giving it some imaages and descriptons of images. If trained well, it should be able to take in an iamge
-# and output a description of that image.  
+# This means if that if trained well, the image and description should be mapped to the same latent space. 
+# If trained well, it should be able to take in an iamge and output a description of that image.
+# heres the article where i got the majority of the code from: https://medium.com/aimonks/a-guide-to-fine-tuning-clip-models-with-custom-data-6c7c0d1416fb
 import json
 
 import torch
@@ -20,14 +21,15 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 model, preprocess = clip.load("ViT-B/32", device=device)
 
 
-def convert_models_to_fp32(model):
+def convert_models_to_fp32(model): # used to convert weights to float 32 for more precise updating
     for p in model.parameters():
         p.data = p.data.float()
         p.grad.data = p.grad.data.float()
 
+
+# xl loading stuff
 xl_file = r"Training.xlsx"
 wb = openpyxl.load_workbook(xl_file)
-
 sheets = wb.sheetnames
 ws = wb[sheets[0]]
 
@@ -57,9 +59,8 @@ for i in range(1, ws.max_row + 1):
 print(f"amount of images: {len(imgs)}")
 print(f"amount of images: {len(text)}")
 print(f"not found: {not_found}")
-print(text[:5])
 
-exit(1)
+
 optimizer = torch.optim.Adam(model.parameters(), lr=5e-5,betas=(0.9,0.98),eps=1e-6,weight_decay=0.2)
 loss_img = nn.CrossEntropyLoss()
 loss_txt = nn.CrossEntropyLoss()
@@ -90,7 +91,7 @@ for epoch in range(num_epochs):
         if device == "cpu":
             optimizer.step()
         else :
-            convert_models_to_fp32(model)
+            convert_models_to_fp32(model) # converting weight numbers to float 32 for precise updating 
             optimizer.step()
             clip.model.convert_weights(model)
 
