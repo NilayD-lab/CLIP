@@ -36,7 +36,7 @@ ws = wb[sheets[0]]
 # gathering entries from xl file
 imgs = []
 text = []
-training_file = r"C:\Users\akani\Downloads\Training"
+training_file = r"C:\Users\akani\Downloads\Training" # Training images folder is in the drive
 
 not_found = 0
 # loading up the image names and their descriptions
