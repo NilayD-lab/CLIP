@@ -2,23 +2,26 @@
 # This means if that if trained well, the image and description should be mapped to the same latent space. 
 # If trained well, it should be able to take in an iamge and output a description of that image.
 # heres the article where i got the majority of the code from: https://medium.com/aimonks/a-guide-to-fine-tuning-clip-models-with-custom-data-6c7c0d1416fb
-import json
 
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
-from PIL import Image
 
 import clip
 import tqdm
 import openpyxl
 import os
-
 from image_tileset import image_title_dataset
 from util import *
 
-device = "cuda" if torch.cuda.is_available() else "cpu"
-model, preprocess = clip.load("ViT-B/32", device=device)
+DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+NUM_EPOCHS = 701
+START_EPOCH = 0
+if (START_EPOCH >=  NUM_EPOCHS):
+    print("reconfig bounds of epochs")
+    exit(1)
+model, preprocess = clip.load("ViT-B/16", device=DEVICE)
+# model.load_state_dict(torch.load(r"models/clip_model_finetuned_400.pth", map_location=DEVICE))
 
 
 def convert_models_to_fp32(model): # used to convert weights to float 32 for more precise updating
@@ -38,23 +41,23 @@ ws = wb[sheets[0]]
 # gathering entries from xl file
 imgs = []
 text = []
-training_file = r"C:\Users\akani\Downloads\Training" # Training images folder is in the drive
+training_file = r"Img_dataset" # Training images folder is in the drive
 
 not_found = 0
 # loading up the image names and their descriptions
-for i in range(1, ws.max_row + 1): 
+end_line = 473 #  ws.max_row + 1 # 
+for i in range(1, end_line): 
     path = str(ws.cell(i, 1).value)
     img_name = path.split("/")[-1]
     value = str(ws.cell(i, 2).value)
     if (os.path.exists(training_file + "/" + img_name)):
-        imgs.append(training_file + "/" + img_name)
-        text.append(value)
         extra_descriptions = combine_descriptions(ws, i) # here is where im combing the extra descriptions i annotated. Removing may lead to better
-        # results but that is still shaky
         if (extra_descriptions is not None):
-            text.append(extra_descriptions)
+            value = extra_descriptions
+            text.append("an image of "+value)
             imgs.append(training_file + "/" + img_name)
-            # print(extra_descriptions)
+
+        
         
 print(f"amount of images: {len(imgs)}")
 print(f"amount of images: {len(text)}")
@@ -69,34 +72,31 @@ dataset = image_title_dataset(imgs, text, preprocess) # Here we create an object
 # the obejct is mainly so we can pass something into the DataLoader class
 train_dataloader = DataLoader(dataset, batch_size=20, shuffle=True) # try reducing batch size if you run out of memory
 
-num_epochs = 200
-for epoch in range(num_epochs):
+for epoch in range(START_EPOCH, NUM_EPOCHS):
     pbar = tqdm.tqdm(train_dataloader, total=len(train_dataloader))
     for batch in pbar:
         optimizer.zero_grad()
 
         images,texts = batch
 
-        images= images.to(device)
-        texts = texts.to(device)
+        images= images.to(DEVICE)
+        texts = texts.to(DEVICE)
 
         # Forward pass
         logits_per_image, logits_per_text = model(images, texts)
         # Compute loss
-        ground_truth = torch.arange(len(images),dtype=torch.long,device=device)
+        ground_truth = torch.arange(len(images),dtype=torch.long,device=DEVICE)
         total_loss = (loss_img(logits_per_image,ground_truth) + loss_txt(logits_per_text,ground_truth))/2
 
         # Backward pass
         total_loss.backward()
-        if device == "cpu":
+        if DEVICE == "cpu":
             optimizer.step()
         else :
             convert_models_to_fp32(model) # converting weight numbers to float 32 for precise updating 
             optimizer.step()
             clip.model.convert_weights(model)
 
-        pbar.set_description(f"Epoch {epoch}/{num_epochs}, Loss: {total_loss.item():.4f}")
-
-
-
-torch.save(model.state_dict(), f"C:/Users/akani/Downloads/clip_model_finetuned_{num_epochs}.pth")
+        pbar.set_description(f"Epoch {epoch}/{NUM_EPOCHS}, Loss: {total_loss.item():.4f}")
+        if (epoch % 50 ==0 and epoch != 0):
+            torch.save(model.state_dict(), f"models/with_crack_descr_{epoch}.pth")
